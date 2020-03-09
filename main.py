@@ -2,7 +2,9 @@ import requests
 import re
 import pprint
 from exercise import Exercise, Option
-
+import pprint
+import execjs
+from util import Util
 
 class MoocSpider(object):
     def __init__(self):
@@ -50,6 +52,12 @@ class MoocSpider(object):
         res.encoding = 'unicode_escape'
         # print("测验页：\n" + res.text)
 
+        text = Util.remove_label_and_callback(res.text)
+
+        js = execjs.compile(text)
+        pprint.pprint(js.eval('s1'))
+
+        """2. 使用正则匹配
         # 匹配：s25.title="<p style="line-height: 150%;"  ><span style="font-size:16px;line-height:150%;font-family:宋体;"  >中国近代史和中国现代史的分界点是：</span></p>"
         complex_titles = re.findall('s[0-9]+.plainTextTitle=".*?";', res.text)
 
@@ -92,6 +100,7 @@ class MoocSpider(object):
 
             exercise_list.append(exercise)
             print(exercise)
+        """
 
     # 获取具体单元的quiz_number列表
     def get_quiz_info(self, chapter_number='1224360494'):
