@@ -1,1 +1,0 @@
-dwr.engine._remoteHandleCallback('1','0',{aid:1582379290,answers:s0,autoSubmit:false,evaluateVo:null,objectiveQList:s1,showAnalysis:true,subjectiveQList:s2,submitStatus:2,tid:1224360494,tname:"Ğ÷ÂÛµ¥Ôª²âÊÔ",type:2});

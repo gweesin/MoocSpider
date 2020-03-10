@@ -2,9 +2,10 @@ import requests
 import re
 import pprint
 from exercise import Exercise, Option
-import pprint
 import execjs
+import pymongo
 from util import Util
+
 
 class MoocSpider(object):
     def __init__(self):
@@ -34,8 +35,17 @@ class MoocSpider(object):
         }
         self.base_url = "https://www.icourse163.org"
 
-    # 获取测验页面上的题目、选项和答案
-    def get_quiz_paper_dto(self, chapter_number='1224360494', quiz_number='1582379290', exercise_list=[]):
+    def get_quiz_paper_dto(self, chapter_number='1224360494', quiz_number='1582379290', ):
+        """获取测验页面上的题目、选项和答案
+
+        Args:
+            chapter_number: 章节号，quiz所属的章节
+            quiz_number: 测验号，quiz的标识
+
+        Returns:
+            quiz_list: 测验的习题集（含答案）
+        """
+
         request_data = "callCount=1\n" \
                        "scriptSessionId=${scriptSessionId}190\n" \
                        "httpSessionId=40219d8c4ef84a0d9ba9e1c4ea95d0c5\n" \
@@ -52,10 +62,15 @@ class MoocSpider(object):
         res.encoding = 'unicode_escape'
         # print("测验页：\n" + res.text)
 
+        # 去除html标签和dwr回调函数
         text = Util.remove_label_and_callback(res.text)
-
         js = execjs.compile(text)
-        pprint.pprint(js.eval('s1'))
+
+        temp = re.findall("objectiveQList:s[0-9]+", res.text)[0]
+        query_number = temp[len("objectiveQList:"):]
+
+        quiz_list = js.eval(query_number)
+        return quiz_list
 
         """2. 使用正则匹配
         # 匹配：s25.title="<p style="line-height: 150%;"  ><span style="font-size:16px;line-height:150%;font-family:宋体;"  >中国近代史和中国现代史的分界点是：</span></p>"
@@ -102,7 +117,7 @@ class MoocSpider(object):
             print(exercise)
         """
 
-    # 获取具体单元的quiz_number列表
+    # 获取具体单元的测验号quiz_number列表
     def get_quiz_info(self, chapter_number='1224360494'):
         request_data = "callCount=1\n" \
                        "scriptSessionId=${scriptSessionId}190\n" \
@@ -122,22 +137,95 @@ class MoocSpider(object):
         # 得到['aid=1582379290', 'aid=1582494376', 'aid=1594652911', 'aid=1594652911']并去除"aid="
         temp_quiz_number = [x[4:] for x in re.findall('aid=[0-9]{2}[0-9]+', res.text)]
         # 去重
-        quiz_number = []
+        quiz_number_list = []
         for x in temp_quiz_number:
-            if x not in quiz_number:
-                quiz_number.append(x)
-        print("做过的测验题号：" + str(quiz_number))
-        return quiz_number
+            if x not in quiz_number_list:
+                quiz_number_list.append(x)
+        print("做过的测验题号：" + str(quiz_number_list))
+        return quiz_number_list
 
-    def get_term_dto(self, tid='1450773590'):
+    # 返回当前已经发布的章节号chapter_number
+    def get_learned_term_dto(self, tid='1450773590'):
+        request_data = "callCount=1\n" \
+                       "scriptSessionId=${scriptSessionId}190\n" \
+                       "httpSessionId=40219d8c4ef84a0d9ba9e1c4ea95d0c5\n" \
+                       "c0-scriptName=CourseBean\n" \
+                       "c0-methodName=getLastLearnedMocTermDto\n" \
+                       "c0-id=0\n" + \
+                       "c0-param0=number:" + tid + "\n" + \
+                       "batchId=1583654271813"
+        requests.packages.urllib3.disable_warnings()
+        url = self.base_url + "/dwr/call/plaincall/CourseBean.getLastLearnedMocTermDto.dwr"
+        res = requests.post(url=url, headers=self.headers, cookies=self.cookies, verify=False, data=request_data)
+        res.encoding = 'unicode_escape'
+        text = Util.remove_label_and_callback(res.text)
+        # 去掉jsonContent字段
+        text = re.sub('s[0-9]+\.jsonContent=(("(\[|{).*?(\]|})";)|(null;))', '', text)
+        # 去掉isTestChecked和name连起来的字段
+        text = re.sub('s[0-9]+\.liveInfoDto.*name=.*";', '', text)
+        js = execjs.compile(text)
+
+        chapter_number_list = []
+        dict = js.eval('s0')
+        for chapter in dict['chapters']:
+            # chapter['name']
+            for quiz in chapter['quizs']:
+                # print(quiz['contentId'])
+                if quiz['contentId'] is not None or len(quiz['contentId']) != 0:
+                    chapter_number_list.append(str(quiz['contentId']))
+
+        print("当前已有章节号：" + str(chapter_number_list))
+        return chapter_number_list
+
+    # 获取自己已做过的测验号quiz_number
+    def get_all_learned_quiz(self, tid='1450773590'):
+        quiz_list = []
+        chapter_number_list = self.get_learned_term_dto(tid)
+        for chapter_number in chapter_number_list:
+            quiz_number_list = self.get_quiz_info(chapter_number)
+            for quiz_number in quiz_number_list:
+                quiz_list_part = self.get_quiz_paper_dto(chapter_number, quiz_number)
+                # self.save_all_quiz(quiz_list)
+                quiz_list.extend(quiz_list_part)
+        return quiz_list
+
+    # 获取自己未做过的测验号quzi_number
+    def get_new_quiz(self):
         pass
+
+    # 保存所有的测验到数据库
+    def save_all_quiz(self, quiz_list):
+        client = pymongo.MongoClient("mongodb://127.0.0.1:27017/")
+        db = client['tmp']
+        exercise_collection = db['exercise']
+        for quiz in quiz_list:
+            # print(quiz)
+            result = exercise_collection.find({"id": quiz['id']})
+            if result.count() == 0:
+                exercise_collection.insert_one(quiz)
+                print("新增题目：" + str(quiz))
+            # 集合中已存在该文档
+            else:
+                for option in quiz['optionDtos']:
+                    exercise_collection.update_one({"id": quiz["id"]}, {"$addToSet": {"optionDtos": option}})
+
+                    # if result.count() == 0:
+                    #     print("新增选项：" + str(option))
+                    #     exercise_collection.update_one(dict, {"$addToSet": {"optionDtos": option}})
+            # print(quiz['id'])
+            # exercise_collection.update_one()
 
 
 if __name__ == '__main__':
     spider = MoocSpider()
-    quiz_number_list = spider.get_quiz_info()
-    exercise_list = []
-    for quiz_number in quiz_number_list:
-        spider.get_quiz_paper_dto(quiz_number=quiz_number,exercise_list=exercise_list)
+    quiz_list = spider.get_quiz_paper_dto(quiz_number="1663019608")
+    print(quiz_list)
+    # exercise_list = []
+    # for quiz_number in quiz_number_list:
+    #     spider.get_quiz_paper_dto(quiz_number=quiz_number, exercise_list=exercise_list)
 
     # spider.get_quiz_info()
+    # spider.get_learned_term_dto()
+
+    # quiz_list = spider.get_all_learned_quiz()
+    # spider.save_all_quiz(quiz_list)
