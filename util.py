@@ -18,7 +18,7 @@ class Util(object):
 
     @classmethod
     def convert_html_blankspace(cls, text):
-        re.sub('&nbsp;', ' ', text)
+        text = re.sub('&nbsp;', ' ', text)
         return text
 
     @classmethod
@@ -177,8 +177,9 @@ class Util(object):
 
             for cookie in cookie_list:
                 tmp = cookie.split(sep='=', maxsplit=1)
-                print("'" + tmp[0] + "':'" + tmp[1] + '\',')
-
+                key, value = tmp[0], tmp[1]
+                dict[key] = value
+        return dict
 
 if __name__ == '__main__':
     with open("test.txt", mode='r', encoding="utf-8") as f:

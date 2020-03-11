@@ -1,12 +1,9 @@
 import requests
 import re
-import pprint
-from exercise import Exercise, Option
 import execjs
 import pymongo
 from util import Util
-from urllib.parse import quote
-
+from cookie import CookieOverdueError
 
 class MoocSpider(object):
     def __init__(self):
@@ -179,8 +176,11 @@ class MoocSpider(object):
 
         url = self.base_url + "/dwr/call/plaincall/MocQuizBean.submitAnswers.dwr"
         requests.packages.urllib3.disable_warnings()
-        requests.post(url=url, headers=self.headers, cookies=self.cookies, verify=False,
+        res = requests.post(url=url, headers=self.headers, cookies=self.cookies, verify=False,
                       data=request_data.encode('utf-8'))
+
+        if re.search('not_auth', res.text) is not None:
+            raise CookieOverdueError('Cookie信息无效或过期！请重新获取Cookie后再试')
 
     # 返回当前已经发布的章节号chapter_number
     def get_learned_term_dto(self, tid):
@@ -230,17 +230,21 @@ class MoocSpider(object):
 
     # 批量获取所有章节新生成的测验集，每章获取cnt次
     def get_new_quiz_list(self, tid, cnt=5, collection_name='test'):
-        chapter_number_list = self.get_learned_term_dto(tid)
-        # quiz_list = []
-        for chapter_number in chapter_number_list:
-            for cur_cnt in range(cnt):
-                quiz_number, text, chapter_number = self.get_new_quiz_number(chapter_number)
-                # print("当前新的测验号：" + quiz_number)
-                self.submit_quiz_answer(quiz_number, text, chapter_number)
-                temp_quiz_list = self.get_quiz_paper_dto(chapter_number=chapter_number, quiz_number=quiz_number)
-                # quiz_list.extend(temp_quiz_list)
-                self.save_all_quiz(temp_quiz_list, collection_name)
-        # self.save_all_quiz(quiz_list, collection_name)
+        try:
+            chapter_number_list = self.get_learned_term_dto(tid)
+            # quiz_list = []
+            for chapter_number in chapter_number_list:
+                for cur_cnt in range(cnt):
+                    quiz_number, text, chapter_number = self.get_new_quiz_number(chapter_number)
+                    # print("当前新的测验号：" + quiz_number)
+                    self.submit_quiz_answer(quiz_number, text, chapter_number)
+                    temp_quiz_list = self.get_quiz_paper_dto(chapter_number=chapter_number, quiz_number=quiz_number)
+                    # quiz_list.extend(temp_quiz_list)
+                    self.save_all_quiz(temp_quiz_list, collection_name)
+            # self.save_all_quiz(quiz_list, collection_name)
+        except CookieOverdueError as e:
+            print(e)
+            return
 
     # 保存所有的测验到数据库
     def save_all_quiz(self, quiz_list, collection_name):
@@ -284,10 +288,4 @@ if __name__ == '__main__':
     # quiz_list = spider.get_all_learned_quiz_list()
     # spider.save_all_quiz(quiz_list)
 
-    # spider.test()
     spider.get_new_quiz_list(tid='1450259448', collection_name="history", cnt=10)
-    # spider.get_all_learned_quiz_list(tid='1450773590', collection_name="test2")
-    # spider.get_quiz_info('1224360494')
-
-    # quiz_number, text, chapter_number = spider.get_new_quiz_number('1224360494')
-    # spider.submit_quiz_answer(quiz_number, text, chapter_number)
