@@ -19,22 +19,7 @@ class MoocSpider(object):
             "Sec-Fetch-Site": "same-origin",
             "Sec-Fetch-Mode": "cors",
         }
-        self.cookies = {'EDUWEBDEVICE': '23398d07cfdc49f5899ea09bd954c4a5',
-                        '__yadk_uid': '0afu1UBllLbDlkqVW1yclfu1NBqJHZld',
-                        'NTES_YD_PASSPORT': 'Xll0WPvmB7y1H.zIr7oe.5skYDVUgrW0i2TDxLcAVLfVwsISwc4gjpUhAmaTEQkLeErFUQ7Qkta2oyWvWpnUERWUG2rVGtJ8evPAeglAwRPVozmTdFz0Ie5EgVjuxg0rBKfpT24LRktBrgcoyykMphgVhZ7YadJ6Q_9YM1i7s4R6EuvJtmg5L.Fbq9sz..dH9oSmLsESBxYQ97iOxgf0xwS_3',
-                        'P_INFO': '15959782573|1583414964|1|imooc|00&99|null&null&null#fuj&null#10#0|&0||15959782573',
-                        'hasVolume': 'true',
-                        'videoResolutionType': '3',
-                        'videoRate': '1.75',
-                        'videoVolume': '1',
-                        'NTESSTUDYSI': '40219d8c4ef84a0d9ba9e1c4ea95d0c5',
-                        'NETEASE_WDA_UID': '1385959575#|#1551620478949',
-                        'WM_TID': 'XP1IV3hOpYlAAUVAAEZqQYiM6FnHbq2X',
-                        'STUDY_INFO': '"yd.981f1ed17b924e66a@163.com|8|1385959575|1583815069081"',
-                        'STUDY_SESS': '"2rYknfJqYdqYWXFIQIb3Cu4QcTZsfFYTKzEyH7Trrt7ybOgVMLblMZA56Vg55h0T2LvsqemS6Xmwq8f+sUJGLcfkAFFc4EvWN1Pcw5KxzlJlCYuCH1Mc6bhCkXosygOdBJQqIBL6E8c7U8UDJYedwxISR8LrRlcJaaG9LLLxwOALhur2Nm2wEb9HcEikV+3FTI8+lZKyHhiycNQo+g+/oA=="',
-                        'STUDY_PERSIST': '"Fclw9gZwcMNzEHNwOku/LzO4qf0vOBFVDiuIeL9UjPHRsUmIkCeL+eHTqyymsoS56SvXk+OASJ3PascNlawo+buFqWCG8+PBbtxfewuiwauzhrfrwb9av4XatgA7JVlAzEvGuFLl4ufG/K02hte9PwmRhS5fDkdkj4CtbEalxV3mTJX7LWJtgiQ4efIK66jx/VCeTqld6D+++eSS9mp8Vto49BD0TJbflUp9f/kiFdvZgpjCC7Iso4RP9U87vJE8LtaQzUT1ovP2MqtW5+L3Hw+PvH8+tZRDonbf7gEH7JU="',
-                        'WM_NI': 'bAzfttJtDs552ThyOfpcj2v2pbnUkskT1FLyqclRb5BzHdjuA1NmsW9AOBpRri3MLm3eg9V8BCUby1WM1hiAfse8H34xNktwEUv8luHxaIZPMHCAPcXXlEW8CwqQLoTiN0k%3D',
-                        'WM_NIKE': '9ca17ae2e6ffcda170e2e6eebbeb68a5988298ea66f3a88bb6c85f829e8ebbf55aa38ffd88e980f697b6b8f82af0fea7c3b92aa29fb687f7808aac8c94b83ff28ca89ace6eb4bda6d3f53ab4bea2b6ea79a98cffa7cf73b3bda4b3e13f82a68885e97f83ef828ef25dfb9f81a3f35ab2b7fdaecf67f1bba9dad534829d9b83fc3b9593ff89ec4ba6adabd9cb39f8a8828cf77d878bbad9ef7f8ca8afaad95c8f988da2d3699c88a4a6d63481a9bfb2cf6598b782d1ea37e2a3', }
+        self.cookies = Util.get_cookie_dict()
         self.base_url = "https://www.icourse163.org"
 
     def get_quiz_paper_dto(self, chapter_number, quiz_number):
@@ -66,6 +51,8 @@ class MoocSpider(object):
 
         # 去除html标签和dwr回调函数
         text = Util.remove_label_and_callback(res.text)
+        # 替换html空格"&nbsp;"为" "
+        text = Util.convert_html_blankspace(text)
         js = execjs.compile(text)
 
         query_number = Util.get_attr_value("objectiveQList", res.text)
@@ -168,7 +155,6 @@ class MoocSpider(object):
     # 提交答案
     def submit_quiz_answer(self, quiz_number, text, chapter_number):
         """
-        提交会返回错误的response，但是必须提交；
         后台有检测机制，如果没提交，下次申请的还是同一份测验题目，
         应该是为了让用户在断网重连之后，还能继续做同一份题
         """
@@ -245,17 +231,16 @@ class MoocSpider(object):
     # 批量获取所有章节新生成的测验集，每章获取cnt次
     def get_new_quiz_list(self, tid, cnt=5, collection_name='test'):
         chapter_number_list = self.get_learned_term_dto(tid)
-        quiz_list = []
+        # quiz_list = []
         for chapter_number in chapter_number_list:
             for cur_cnt in range(cnt):
                 quiz_number, text, chapter_number = self.get_new_quiz_number(chapter_number)
-                print("当前新的测验号：" + quiz_number)
+                # print("当前新的测验号：" + quiz_number)
                 self.submit_quiz_answer(quiz_number, text, chapter_number)
                 temp_quiz_list = self.get_quiz_paper_dto(chapter_number=chapter_number, quiz_number=quiz_number)
-                quiz_list.extend(temp_quiz_list)
-                # print(quiz_list)
-                # self.save_all_quiz(quiz_list)
-        self.save_all_quiz(quiz_list, collection_name)
+                # quiz_list.extend(temp_quiz_list)
+                self.save_all_quiz(temp_quiz_list, collection_name)
+        # self.save_all_quiz(quiz_list, collection_name)
 
     # 保存所有的测验到数据库
     def save_all_quiz(self, quiz_list, collection_name):
@@ -263,11 +248,13 @@ class MoocSpider(object):
         db = client['tmp']
         exercise_collection = db[collection_name]
         for quiz in quiz_list:
-            # print(quiz)
+            """count is deprecated. Use Collection.count_documents instead.
             result = exercise_collection.find({"id": quiz['id']})
             if result.count() == 0:
+            """
+            if exercise_collection.count_documents({"id": quiz['id']}) == 0:
                 exercise_collection.insert_one(quiz)
-                print("新增题目：" + str(quiz))
+                print("新增题目：" + quiz['title'])
             # 集合中已存在该文档
             else:
                 for option in quiz['optionDtos']:
@@ -298,7 +285,7 @@ if __name__ == '__main__':
     # spider.save_all_quiz(quiz_list)
 
     # spider.test()
-    spider.get_new_quiz_list(tid='1450773590', collection_name="history", cnt=1)
+    spider.get_new_quiz_list(tid='1450259448', collection_name="history", cnt=10)
     # spider.get_all_learned_quiz_list(tid='1450773590', collection_name="test2")
     # spider.get_quiz_info('1224360494')
 

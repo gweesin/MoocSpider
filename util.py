@@ -17,6 +17,11 @@ class Util(object):
         return text
 
     @classmethod
+    def convert_html_blankspace(cls, text):
+        re.sub('&nbsp;', ' ', text)
+        return text
+
+    @classmethod
     def convert_inner_label(cls, text):
         def convert2utf8(matched):
             tmp_str = matched.group('string')
@@ -158,6 +163,21 @@ class Util(object):
         result.append("batchId=1583819197813")
 
         return '\n'.join(result)
+
+    @classmethod
+    def get_cookie_dict(cls):
+        with open("cookie.txt", "r", encoding='utf-8') as f:
+            cookies = f.read()
+            dict = {}
+
+            # 去空格和换行
+            cookies = re.sub(' |\n', '', cookies)
+
+            cookie_list = cookies.split(';')
+
+            for cookie in cookie_list:
+                tmp = cookie.split(sep='=', maxsplit=1)
+                print("'" + tmp[0] + "':'" + tmp[1] + '\',')
 
 
 if __name__ == '__main__':
