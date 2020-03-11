@@ -4,6 +4,10 @@ import execjs
 import pymongo
 from util import Util
 from cookie import CookieOverdueError
+from pprint import pprint
+
+quiz_count = 0
+
 
 class MoocSpider(object):
     def __init__(self):
@@ -32,7 +36,7 @@ class MoocSpider(object):
 
         request_data = "callCount=1\n" \
                        "scriptSessionId=${scriptSessionId}190\n" \
-                       "httpSessionId=40219d8c4ef84a0d9ba9e1c4ea95d0c5\n" \
+                       "httpSessionId=%s\n" % self.cookies['NTESSTUDYSI'] + \
                        "c0-scriptName=MocQuizBean\n" \
                        "c0-methodName=getQuizPaperDto\n" \
                        "c0-id=0\n" \
@@ -106,7 +110,7 @@ class MoocSpider(object):
     def get_new_quiz_number(self, chapter_number):
         request_data = "callCount=1\n" \
                        "scriptSessionId=${scriptSessionId}190\n" \
-                       "httpSessionId=40219d8c4ef84a0d9ba9e1c4ea95d0c5\n" \
+                       "httpSessionId=%s\n" % self.cookies['NTESSTUDYSI'] + \
                        "c0-scriptName=MocQuizBean\n" \
                        "c0-methodName=getQuizPaperDto\n" \
                        "c0-id=0\n" \
@@ -126,7 +130,7 @@ class MoocSpider(object):
     def get_quiz_info(self, chapter_number):
         request_data = "callCount=1\n" \
                        "scriptSessionId=${scriptSessionId}190\n" \
-                       "httpSessionId=40219d8c4ef84a0d9ba9e1c4ea95d0c5\n" \
+                       "httpSessionId=%s\n" % self.cookies['NTESSTUDYSI'] + \
                        "c0-scriptName=MocQuizBean\n" \
                        "c0-methodName=getQuizInfo\n" \
                        "c0-id=0\n" \
@@ -162,8 +166,8 @@ class MoocSpider(object):
         quiz_list = js.eval(query_number)
         request_data = "callCount=1\n" + \
                        "scriptSessionId=${scriptSessionId}190\n" + \
-                       "httpSessionId=40219d8c4ef84a0d9ba9e1c4ea95d0c5\n" + \
-                       "c0-scriptName=MocQuizBean\n" + \
+                       "httpSessionId=%s\n" % self.cookies['NTESSTUDYSI'] + \
+                           "c0-scriptName=MocQuizBean\n" + \
                        "c0-methodName=submitAnswers\n" + \
                        "c0-id=0\n" + \
                        "c0-e1=number:" + quiz_number + "\n" + \
@@ -177,7 +181,7 @@ class MoocSpider(object):
         url = self.base_url + "/dwr/call/plaincall/MocQuizBean.submitAnswers.dwr"
         requests.packages.urllib3.disable_warnings()
         res = requests.post(url=url, headers=self.headers, cookies=self.cookies, verify=False,
-                      data=request_data.encode('utf-8'))
+                            data=request_data.encode('utf-8'))
 
         if re.search('not_auth', res.text) is not None:
             raise CookieOverdueError('Cookie信息无效或过期！请重新获取Cookie后再试')
@@ -186,7 +190,7 @@ class MoocSpider(object):
     def get_learned_term_dto(self, tid):
         request_data = "callCount=1\n" \
                        "scriptSessionId=${scriptSessionId}190\n" \
-                       "httpSessionId=40219d8c4ef84a0d9ba9e1c4ea95d0c5\n" \
+                       "httpSessionId=%s\n" % self.cookies['NTESSTUDYSI'] + \
                        "c0-scriptName=CourseBean\n" \
                        "c0-methodName=getLastLearnedMocTermDto\n" \
                        "c0-id=0\n" + \
@@ -230,6 +234,8 @@ class MoocSpider(object):
 
     # 批量获取所有章节新生成的测验集，每章获取cnt次
     def get_new_quiz_list(self, tid, cnt=5, collection_name='test'):
+        global quiz_count
+
         try:
             chapter_number_list = self.get_learned_term_dto(tid)
             # quiz_list = []
@@ -245,9 +251,13 @@ class MoocSpider(object):
         except CookieOverdueError as e:
             print(e)
             return
+        finally:
+            print("本次共新增" + str(quiz_count) + "道题目")
 
     # 保存所有的测验到数据库
     def save_all_quiz(self, quiz_list, collection_name):
+        global quiz_count
+
         client = pymongo.MongoClient("mongodb://127.0.0.1:27017/")
         db = client['tmp']
         exercise_collection = db[collection_name]
@@ -258,6 +268,7 @@ class MoocSpider(object):
             """
             if exercise_collection.count_documents({"id": quiz['id']}) == 0:
                 exercise_collection.insert_one(quiz)
+                quiz_count += 1
                 print("新增题目：" + quiz['title'])
             # 集合中已存在该文档
             else:
@@ -280,6 +291,12 @@ class MoocSpider(object):
         quiz_list = self.get_quiz_paper_dto(chapter_number=chapter_number, quiz_number=quiz_number)
         print(quiz_list)
 
+    def test_judge(self):
+        # text =self.get_quiz_info('')
+        quiz_list = self.get_quiz_paper_dto('1220933426', '1671007785')
+
+        pprint(quiz_list)
+
 
 if __name__ == '__main__':
     spider = MoocSpider()
@@ -288,4 +305,11 @@ if __name__ == '__main__':
     # quiz_list = spider.get_all_learned_quiz_list()
     # spider.save_all_quiz(quiz_list)
 
-    spider.get_new_quiz_list(tid='1450259448', collection_name="history", cnt=10)
+    # 武大近代史
+    # spider.get_new_quiz_list(tid='1450259448', collection_name="history", cnt=10)
+
+    # 青岛大学软件构造
+    spider.get_new_quiz_list(tid='1206820205', collection_name="software", cnt=30)
+
+    # spider.test_judge()
+    # spider.get_new_quiz_list(tid='1450259448', collection_name="ttt", cnt=10)

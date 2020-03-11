@@ -63,8 +63,8 @@ class Util(object):
         if type(value) is str:
             prefix_str = '<p><span style="font-family: 宋体; font-size: 16px;"  >'
             suffix_str = '</span></p>'
-            return "string:" + quote(prefix_str + value + suffix_str, encoding="utf-8")
-            # return quote(s, encoding="utf-8")
+            # return "string:" + quote(prefix_str + value + suffix_str, encoding="utf-8")
+            return quote(value, encoding="utf-8")
         return ''
 
     @classmethod
@@ -111,6 +111,8 @@ class Util(object):
 
                         dict[quiz_obj] += "reference:%s," % option_obj
 
+                    if dict[quiz_obj] == "Array:[":
+                        dict[quiz_obj] += ','
                     dict[quiz_obj] = quiz_obj + "=" + dict[quiz_obj][:len(dict[quiz_obj]) - 1] + "]"
                     result.append(dict[quiz_obj])
 
@@ -137,6 +139,8 @@ class Util(object):
 
             dict[total_obj] += "reference:%s," % quiz_list_obj
 
+        if dict[total_obj] == 'Array:[':
+            dict[total_obj] += ','
         dict[total_obj] = total_obj + "=" + dict[total_obj][:len(dict[total_obj]) - 1] + "]"
         result.append(dict[total_obj])
 
