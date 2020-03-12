@@ -5,20 +5,41 @@ from urllib.parse import quote
 class Util(object):
     @classmethod
     def remove_label_and_callback(cls, text):
+        """移除HTML标签和dwr的回调函数
+
+        :param text: 需要处理的文本
+        :return: 移除后的文本
+        """
+
         # 获取dwr回调函数的字符串
         dwr_callback = re.findall("dwr\.engine\._remoteHandleCallback\(.*\);\n", text)
         # 去除dwr生成的js的回调函数
         if len(dwr_callback) is not 0:
             text = text[:-len(dwr_callback[0])]
 
-        # 去除Label
+        # 去除HTML Label
         text = re.sub("<\/{0,1}[a-z]+.*?>", '', text)
 
         return text
 
     @classmethod
-    def convert_html_blankspace(cls, text):
-        text = re.sub('&nbsp;', ' ', text)
+    def convert_html_escape_character(cls, text):
+        """将HTML的转义字符转化为原字符
+
+        :param text: 需要转换的文本
+        :return: 替换转义字符后的文本
+        :rtype: str
+        """
+        html_escape_character = {
+            '"': '&quot;',
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            ' ': '&nbsp;'
+        }
+        for (key, value) in html_escape_character:
+            text = re.sub(value, key, text)
+
         return text
 
     @classmethod
@@ -43,10 +64,10 @@ class Util(object):
 
     @classmethod
     def get_attr_value(cls, attr, text):
-        """返回属性对应的精确值，例如找aid，找objectiveQList...
+        """返回属性对应的value，例如找aid，找objectiveQList...
 
         :param attr: 要查找的属性
-        :param text: 查找的范围
+        :param text: 查找的文本
         :return: 返回对应的value
         """
         temp = re.findall(attr + ":*.[0-9]+,", text)[0]
@@ -56,6 +77,7 @@ class Util(object):
 
     @classmethod
     def convert2str(self, value):
+
         if value is None:
             return "null:null"
         if type(value) is int:
@@ -170,6 +192,10 @@ class Util(object):
 
     @classmethod
     def get_cookie_dict(cls):
+        """将cookie字符串转化为dict
+
+        :return: cookie dict
+        """
         with open("cookie.txt", "r", encoding='utf-8') as f:
             cookies = f.read()
             dict = {}
@@ -184,6 +210,7 @@ class Util(object):
                 key, value = tmp[0], tmp[1]
                 dict[key] = value
         return dict
+
 
 if __name__ == '__main__':
     with open("test.txt", mode='r', encoding="utf-8") as f:
