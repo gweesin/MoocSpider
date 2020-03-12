@@ -31,7 +31,7 @@ class Util(object):
         :rtype: str
         """
         html_escape_character = {
-            '\\"': '&quot;',
+            "'": '&quot;',
             '&': '&amp;',
             '<': '&lt;',
             '>': '&gt;',

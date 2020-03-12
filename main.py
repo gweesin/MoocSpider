@@ -79,7 +79,14 @@ class MoocSpider(object):
         res = requests.post(url=url, headers=self.headers, cookies=self.cookies, verify=False, data=request_data)
         res.encoding = 'unicode_escape'
         # print(res.text)
-        quiz_number = Util.get_attr_value("aid", res.text)
+
+        quiz_number = None
+        try:
+            quiz_number = Util.get_attr_value("aid", res.text)
+        except IndexError:
+            print(quiz_number)
+            raise IndexError
+
         return (quiz_number, res.text, chapter_number)
 
     def get_quiz_info(self, chapter_number):
@@ -250,7 +257,7 @@ class MoocSpider(object):
             quiz_count = 0
 
     def save_all_quiz(self, quiz_list, collection_name):
-        """保存所有的测验到数据库
+        """保存所有的测验到数据库(带查重)
 
         :param quiz_list: 测验题目列表
         :param collection_name: 数据库collection集合（默认数据库为tmp）
@@ -285,18 +292,18 @@ if __name__ == '__main__':
     # spider.save_all_quiz(quiz_list)
 
     # 武大近代史
-    # spider.get_new_quiz_list(tid='1450259448', collection_name="history", cnt=10) # 第8次开课
-    # spider.get_new_quiz_list(tid='1207344201', collection_name="history", cnt=10) # 第7次开课
-    # spider.get_new_quiz_list(tid='1206055229', collection_name="history", cnt=30) # 第6次开课
-    # spider.get_new_quiz_list(tid='1003351002', collection_name="history", cnt=30) # 第5次开课
-    # spider.get_new_quiz_list(tid='1002788015', collection_name="history", cnt=30) # 第4次开课
-    # spider.get_new_quiz_list(tid='1002328019', collection_name="history", cnt=30) # 第3次开课
-    # spider.get_new_quiz_list(tid='1002035025', collection_name="history", cnt=30)  # 第2次开课
-    # spider.get_new_quiz_list(tid='1001804009', collection_name="history", cnt=30)  # 第1次开课
+    spider.get_new_quiz_list(tid='1450259448', collection_name="history", cnt=10)  # 第8次开课
+    spider.get_new_quiz_list(tid='1207344201', collection_name="history", cnt=10)  # 第7次开课
+    spider.get_new_quiz_list(tid='1206055229', collection_name="history", cnt=30)  # 第6次开课
+    spider.get_new_quiz_list(tid='1003351002', collection_name="history", cnt=30)  # 第5次开课
+    spider.get_new_quiz_list(tid='1002788015', collection_name="history", cnt=30)  # 第4次开课
+    spider.get_new_quiz_list(tid='1002328019', collection_name="history", cnt=30)  # 第3次开课
+    spider.get_new_quiz_list(tid='1002035025', collection_name="history", cnt=30)  # 第2次开课
+    spider.get_new_quiz_list(tid='1001804009', collection_name="history", cnt=30)  # 第1次开课
 
     # 青岛大学软件构造(软件设计与体系结构)
-    # spider.get_new_quiz_list(tid='1206820205', collection_name="software", cnt=10)  # 第1次开课
-    spider.get_new_quiz_list(tid='1450689459', collection_name="software", cnt=10)  # 第2次开课
+    # spider.get_new_quiz_list(tid='1206820205', collection_name="software", cnt=30)  # 第1次开课
+    # spider.get_new_quiz_list(tid='1450689459', collection_name="software", cnt=30)  # 第2次开课
 
     # spider.test_judge()
     # spider.get_new_quiz_list(tid='1450259448', collection_name="ttt", cnt=10)
