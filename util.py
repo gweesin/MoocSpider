@@ -25,13 +25,15 @@ class Util(object):
     @classmethod
     def convert_html_escape_character(cls, text):
         """将HTML的转义字符转化为原字符
+        因为&quot转化为“"”会导致execjs解析失败，所以先将其转化为@@@@@，
+        execjs解析后再将@@@@@转回“"”
 
         :param text: 需要转换的文本
         :return: 替换转义字符后的文本
         :rtype: str
         """
         html_escape_character = {
-            "'": '&quot;',
+            "@@@@@@": '&quot;',
             '&': '&amp;',
             '<': '&lt;',
             '>': '&gt;',

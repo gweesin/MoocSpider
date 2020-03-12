@@ -60,6 +60,18 @@ class MoocSpider(object):
         query_number = Util.get_attr_value("objectiveQList", res.text)
 
         quiz_list = js.eval(query_number)
+
+        def convert_at2quote(text):
+            return re.sub('@@@@@', '"', text)
+
+        for quiz in quiz_list:
+            for key, value in quiz.items():
+                if key == 'plainTextTitle' or key == 'title':
+                    quiz[key] = convert_at2quote(value)
+                elif key == 'optionDtos':
+                    for option in quiz[key]:
+                        option['content'] = convert_at2quote(option['content'])
+
         return quiz_list
 
     # 获取自己未做过的测验号quiz_number
