@@ -62,7 +62,7 @@ class MoocSpider(object):
         quiz_list = js.eval(query_number)
 
         def convert_at2quote(text):
-            return re.sub('@@@@@', '"', text)
+            return re.sub('`qwerf`', '"', text)
 
         for quiz in quiz_list:
             for key, value in quiz.items():
@@ -304,18 +304,18 @@ if __name__ == '__main__':
     # spider.save_all_quiz(quiz_list)
 
     # 武大近代史
-    spider.get_new_quiz_list(tid='1450259448', collection_name="history", cnt=10)  # 第8次开课
-    spider.get_new_quiz_list(tid='1207344201', collection_name="history", cnt=10)  # 第7次开课
-    spider.get_new_quiz_list(tid='1206055229', collection_name="history", cnt=30)  # 第6次开课
-    spider.get_new_quiz_list(tid='1003351002', collection_name="history", cnt=30)  # 第5次开课
-    spider.get_new_quiz_list(tid='1002788015', collection_name="history", cnt=30)  # 第4次开课
-    spider.get_new_quiz_list(tid='1002328019', collection_name="history", cnt=30)  # 第3次开课
-    spider.get_new_quiz_list(tid='1002035025', collection_name="history", cnt=30)  # 第2次开课
-    spider.get_new_quiz_list(tid='1001804009', collection_name="history", cnt=30)  # 第1次开课
+    spider.get_new_quiz_list(tid='1450259448', collection_name="history", cnt=20)  # 第8次开课
+    spider.get_new_quiz_list(tid='1207344201', collection_name="history", cnt=20)  # 第7次开课
+    spider.get_new_quiz_list(tid='1206055229', collection_name="history", cnt=20)  # 第6次开课
+    spider.get_new_quiz_list(tid='1003351002', collection_name="history", cnt=20)  # 第5次开课
+    spider.get_new_quiz_list(tid='1002788015', collection_name="history", cnt=20)  # 第4次开课
+    spider.get_new_quiz_list(tid='1002328019', collection_name="history", cnt=20)  # 第3次开课
+    spider.get_new_quiz_list(tid='1002035025', collection_name="history", cnt=20)  # 第2次开课
+    spider.get_new_quiz_list(tid='1001804009', collection_name="history", cnt=20)  # 第1次开课
 
     # 青岛大学软件构造(软件设计与体系结构)
-    # spider.get_new_quiz_list(tid='1206820205', collection_name="software", cnt=30)  # 第1次开课
-    # spider.get_new_quiz_list(tid='1450689459', collection_name="software", cnt=30)  # 第2次开课
+    # spider.get_new_quiz_list(tid='1206820205', collection_name="software", cnt=18)  # 第1次开课
+    # spider.get_new_quiz_list(tid='1450689459', collection_name="software", cnt=18)  # 第2次开课
 
     # spider.test_judge()
     # spider.get_new_quiz_list(tid='1450259448', collection_name="ttt", cnt=10)

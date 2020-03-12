@@ -33,7 +33,7 @@ class Util(object):
         :rtype: str
         """
         html_escape_character = {
-            "@@@@@@": '&quot;',
+            "`qwerf`": '&quot;',
             '&': '&amp;',
             '<': '&lt;',
             '>': '&gt;',
