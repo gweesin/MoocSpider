@@ -31,13 +31,13 @@ class Util(object):
         :rtype: str
         """
         html_escape_character = {
-            '"': '&quot;',
+            '\\"': '&quot;',
             '&': '&amp;',
             '<': '&lt;',
             '>': '&gt;',
             ' ': '&nbsp;'
         }
-        for (key, value) in html_escape_character:
+        for key, value in html_escape_character.items():
             text = re.sub(value, key, text)
 
         return text

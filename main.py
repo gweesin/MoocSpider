@@ -5,6 +5,7 @@ import pymongo
 from util import Util
 from cookie import CookieOverdueError
 from pprint import pprint
+from colorama import Fore, Back, init
 
 quiz_count = 0
 
@@ -80,7 +81,6 @@ class MoocSpider(object):
         # print(res.text)
         quiz_number = Util.get_attr_value("aid", res.text)
         return (quiz_number, res.text, chapter_number)
-
 
     def get_quiz_info(self, chapter_number):
         """根据chapter_number获取quiz_number_list
@@ -199,7 +199,7 @@ class MoocSpider(object):
                     chapter_number_list.append(str(quiz['contentId']))
 
         chapter_number_list.sort()
-        print("当前已有章节号：" + str(chapter_number_list))
+        print(Fore.CYAN + "当前已有章节号：" + str(chapter_number_list))
         return chapter_number_list
 
     def get_all_learned_quiz_list(self, tid, collection_name):
@@ -246,7 +246,7 @@ class MoocSpider(object):
             print(e)
             return
         finally:
-            print("本次共新增" + str(quiz_count) + "道题目")
+            print(Fore.LIGHTRED_EX + "本次共新增" + str(quiz_count) + "道题目")
             quiz_count = 0
 
     def save_all_quiz(self, quiz_list, collection_name):
@@ -262,42 +262,41 @@ class MoocSpider(object):
         db = client['tmp']
         exercise_collection = db[collection_name]
         for quiz in quiz_list:
-            """count is deprecated. Use Collection.count_documents instead.
-            result = exercise_collection.find({"id": quiz['id']})
-            if result.count() == 0:
-            """
             if exercise_collection.count_documents({"title": quiz['title']}) == 0:
                 exercise_collection.insert_one(quiz)
                 quiz_count += 1
-                print("新增题目：" + quiz['title'])
+                print(Fore.LIGHTYELLOW_EX + "新增题目：" + quiz['title'])
             # 集合中已存在该文档
             else:
                 for option in quiz['optionDtos']:
                     flag = exercise_collection.update_one({"title": quiz["title"]},
                                                           {"$addToSet": {"optionDtos": option}})
                     if flag.modified_count is not 0:
-                        print("新增选项：" + option['content'])
+                        print(Fore.YELLOW + "新增选项：" + option['content'])
 
 
 if __name__ == '__main__':
     spider = MoocSpider()
+
+    init(autoreset=True)  # 自动修复
 
     # 获取已做过的测验列表并保存该列表到数据库
     # quiz_list = spider.get_all_learned_quiz_list()
     # spider.save_all_quiz(quiz_list)
 
     # 武大近代史
-    # spider.get_new_quiz_list(tid='1450259448', collection_name="history", cnt=10)
-    # spider.get_new_quiz_list(tid='1207344201', collection_name="history", cnt=10)
-    # spider.get_new_quiz_list(tid='1206055229', collection_name="history", cnt=30)
-    # spider.get_new_quiz_list(tid='1003351002', collection_name="history", cnt=30)
-    # spider.get_new_quiz_list(tid='1002788015', collection_name="history", cnt=30)
-    # spider.get_new_quiz_list(tid='1002328019', collection_name="history", cnt=30)
-    spider.get_new_quiz_list(tid='1002035025', collection_name="history", cnt=30)
-    spider.get_new_quiz_list(tid='1001804009', collection_name="history", cnt=30)
+    # spider.get_new_quiz_list(tid='1450259448', collection_name="history", cnt=10) # 第8次开课
+    # spider.get_new_quiz_list(tid='1207344201', collection_name="history", cnt=10) # 第7次开课
+    # spider.get_new_quiz_list(tid='1206055229', collection_name="history", cnt=30) # 第6次开课
+    # spider.get_new_quiz_list(tid='1003351002', collection_name="history", cnt=30) # 第5次开课
+    # spider.get_new_quiz_list(tid='1002788015', collection_name="history", cnt=30) # 第4次开课
+    # spider.get_new_quiz_list(tid='1002328019', collection_name="history", cnt=30) # 第3次开课
+    # spider.get_new_quiz_list(tid='1002035025', collection_name="history", cnt=30)  # 第2次开课
+    # spider.get_new_quiz_list(tid='1001804009', collection_name="history", cnt=30)  # 第1次开课
 
-    # 青岛大学软件构造
-    # spider.get_new_quiz_list(tid='1206820205', collection_name="software", cnt=30)
+    # 青岛大学软件构造(软件设计与体系结构)
+    # spider.get_new_quiz_list(tid='1206820205', collection_name="software", cnt=10)  # 第1次开课
+    spider.get_new_quiz_list(tid='1450689459', collection_name="software", cnt=10)  # 第2次开课
 
     # spider.test_judge()
     # spider.get_new_quiz_list(tid='1450259448', collection_name="ttt", cnt=10)
