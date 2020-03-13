@@ -7,11 +7,11 @@
 接下来是一些程序相关的内容：
 
 ## Preview
-![爬虫运行截图](http://q5xvt6pje.bkt.clouddn.com/picGo/20200312230624.png)
-![单选题](http://q5xvt6pje.bkt.clouddn.com/picGo/20200312231309.png)
-![多选题](http://q5xvt6pje.bkt.clouddn.com/picGo/20200312232107.png)
-![填空题](http://q5xvt6pje.bkt.clouddn.com/picGo/20200312232149.png)
-![判断题](http://q5xvt6pje.bkt.clouddn.com/picGo/20200312232228.png)
+![爬虫运行截图](https://upload-images.jianshu.io/upload_images/14611955-fe576017a17544e1.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![单选题](https://upload-images.jianshu.io/upload_images/14611955-10f9c2d0e60b5ede.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![多选题](https://upload-images.jianshu.io/upload_images/14611955-13cf2c1390715deb.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![填空题](https://upload-images.jianshu.io/upload_images/14611955-602fdf4125bffe09.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![判断题](https://upload-images.jianshu.io/upload_images/14611955-87b4cbe7083ced9d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
 ## DirectoryTree
 ```text
@@ -32,7 +32,7 @@
 ## PS
 
 ### 图片上传图床工具使用的是PicGo
-![PicGo_Preview](http://q5xvt6pje.bkt.clouddn.com/picGo/20200312233016.png)
+![PicGo_Preview](https://upload-images.jianshu.io/upload_images/14611955-d6485d0cd2f4f2fe.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
 ### 目录树生成工具使用的是directory-tree-generator（忘了项目地址了）
-![directory-tree-generator_Preview](http://q5xvt6pje.bkt.clouddn.com/picGo/20200312233307.png)
+![directory-tree-generator_Preview](https://upload-images.jianshu.io/upload_images/14611955-f0eb6ff312541498.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)

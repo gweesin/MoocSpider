@@ -68,6 +68,6 @@ class MyDb(object):
 
 
 if __name__ == '__main__':
-    my_db = MyDb('tmp', 'software')
+    my_db = MyDb('tmp', 'history')
     # print(my_db)
     my_db.convert2csv()
