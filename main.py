@@ -2,6 +2,8 @@ import requests
 import re
 import execjs
 import pymongo
+from pymongo.errors import ServerSelectionTimeoutError
+
 from util import Util
 from cookie import CookieOverdueError
 from pprint import pprint
@@ -96,8 +98,8 @@ class MoocSpider(object):
         try:
             quiz_number = Util.get_attr_value("aid", res.text)
         except IndexError:
-            print(quiz_number)
-            raise IndexError
+            # print(quiz_number)
+            raise IndexError("quiz_number is" + str(quiz_number))
 
         return (quiz_number, res.text, chapter_number)
 
@@ -217,6 +219,12 @@ class MoocSpider(object):
                 if quiz['contentId'] is not None or len(quiz['contentId']) != 0:
                     chapter_number_list.append(str(quiz['contentId']))
 
+        # 添加期末考试Id(期末考试也当成一个章节处理)
+        object_test_id = re.findall("objectTestId=[0-9]+;", res.text)
+        if len(object_test_id) != 0:
+            object_test_id = object_test_id[0][len("objectTestId="):len(object_test_id[0]) - 1]
+            chapter_number_list.append(object_test_id)
+
         chapter_number_list.sort()
         print(Fore.CYAN + "当前已有章节号：" + str(chapter_number_list))
         return chapter_number_list
@@ -251,7 +259,6 @@ class MoocSpider(object):
 
         try:
             chapter_number_list = self.get_learned_term_dto(tid)
-            # quiz_list = []
             for chapter_number in chapter_number_list:
                 for cur_cnt in range(cnt):
                     quiz_number, text, chapter_number = self.get_new_quiz_number(chapter_number)
@@ -260,9 +267,11 @@ class MoocSpider(object):
                     temp_quiz_list = self.get_quiz_paper_dto(chapter_number=chapter_number, quiz_number=quiz_number)
                     # quiz_list.extend(temp_quiz_list)
                     self.save_all_quiz(temp_quiz_list, collection_name)
-            # self.save_all_quiz(quiz_list, collection_name)
         except CookieOverdueError as e:
             print(e)
+            return
+        except ServerSelectionTimeoutError as e:
+            print(Fore.LIGHTRED_EX + "发生错误" + e + "\n请开启mongo服务")
             return
         finally:
             print(Fore.LIGHTRED_EX + "本次共新增" + str(quiz_count) + "道题目")
@@ -304,18 +313,22 @@ if __name__ == '__main__':
     # spider.save_all_quiz(quiz_list)
 
     # 武大近代史
-    spider.get_new_quiz_list(tid='1450259448', collection_name="history", cnt=20)  # 第8次开课
-    spider.get_new_quiz_list(tid='1207344201', collection_name="history", cnt=20)  # 第7次开课
-    spider.get_new_quiz_list(tid='1206055229', collection_name="history", cnt=20)  # 第6次开课
-    spider.get_new_quiz_list(tid='1003351002', collection_name="history", cnt=20)  # 第5次开课
-    spider.get_new_quiz_list(tid='1002788015', collection_name="history", cnt=20)  # 第4次开课
-    spider.get_new_quiz_list(tid='1002328019', collection_name="history", cnt=20)  # 第3次开课
-    spider.get_new_quiz_list(tid='1002035025', collection_name="history", cnt=20)  # 第2次开课
-    spider.get_new_quiz_list(tid='1001804009', collection_name="history", cnt=20)  # 第1次开课
+    # spider.get_new_quiz_list(tid='1450259448', collection_name="history", cnt=5)  # 第8次开课
+    # spider.get_new_quiz_list(tid='1207344201', collection_name="history", cnt=5)  # 第7次开课
+    # spider.get_new_quiz_list(tid='1206055229', collection_name="history", cnt=5)  # 第6次开课
+    # spider.get_new_quiz_list(tid='1003351002', collection_name="history", cnt=5)  # 第5次开课
+    # spider.get_new_quiz_list(tid='1002788015', collection_name="history", cnt=5)  # 第4次开课
+    # spider.get_new_quiz_list(tid='1002328019', collection_name="history", cnt=5)  # 第3次开课
+    # spider.get_new_quiz_list(tid='1002035025', collection_name="history", cnt=5)  # 第2次开课
+    # spider.get_new_quiz_list(tid='1001804009', collection_name="history", cnt=5)  # 第1次开课
 
     # 青岛大学软件构造(软件设计与体系结构)
-    # spider.get_new_quiz_list(tid='1206820205', collection_name="software", cnt=18)  # 第1次开课
-    # spider.get_new_quiz_list(tid='1450689459', collection_name="software", cnt=18)  # 第2次开课
+    spider.get_new_quiz_list(tid='1206820205', collection_name="software", cnt=3)  # 第1次开课
+    spider.get_new_quiz_list(tid='1450689459', collection_name="software", cnt=3)  # 第2次开课
+
+    # 福建农林大学Java
+    # spider.get_new_quiz_list(tid='1003691003', collection_name="java", cnt=5)  # 第1次开课
+    # spider.get_new_quiz_list(tid='1206936204', collection_name="java", cnt=18)  # 第2次开课
 
     # spider.test_judge()
     # spider.get_new_quiz_list(tid='1450259448', collection_name="ttt", cnt=10)
