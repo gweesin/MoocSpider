@@ -1,8 +1,8 @@
 .DS_Store
 node_modules
 /dist
-cookie.txt
 __pycache__
+cookie.txt
 quiz.csv
 
 # local env files
