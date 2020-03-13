@@ -36,3 +36,8 @@
 
 ### 目录树生成工具使用的是directory-tree-generator（忘了项目地址了）
 ![directory-tree-generator_Preview](https://upload-images.jianshu.io/upload_images/14611955-f0eb6ff312541498.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+## Using
+
+需要在根目录下创建一个cookie.txt文件夹，并且粘入cookie字符串，程序会自动解析成dict形式。
+需要传入课程号（url里的tid），MongoDB的colleciton名称，db默认是tmp。
