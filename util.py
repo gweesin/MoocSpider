@@ -1,14 +1,27 @@
 import re
 from urllib.parse import quote
-
+from pprint import pprint
 
 class Util(object):
     @classmethod
-    def remove_label_and_callback(cls, text):
-        """移除HTML标签和dwr的回调函数
+    def remove_html_label(cls, text):
+        """移除HTML标签
 
         :param text: 需要处理的文本
         :return: 移除后的文本
+        """
+
+        # 去除HTML Label
+        text = re.sub("<\/{0,1}[a-z]+.*?>", '', text)
+
+        return text
+
+    @classmethod
+    def remove_callback(cls, text):
+        """移除dwr的回调函数
+
+        :param text:
+        :return:
         """
 
         # 获取dwr回调函数的字符串
@@ -16,10 +29,6 @@ class Util(object):
         # 去除dwr生成的js的回调函数
         if len(dwr_callback) is not 0:
             text = text[:-len(dwr_callback[0])]
-
-        # 去除HTML Label
-        text = re.sub("<\/{0,1}[a-z]+.*?>", '', text)
-
         return text
 
     @classmethod
@@ -215,7 +224,5 @@ class Util(object):
 
 
 if __name__ == '__main__':
-    with open("test.txt", mode='r', encoding="utf-8") as f:
-        string = f.read()
-        string = Util.remove_label_and_callback(string)
-        print(string)
+    dict = Util.get_cookie_dict()
+    pprint(dict)

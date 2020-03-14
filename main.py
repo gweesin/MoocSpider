@@ -2,6 +2,7 @@ import requests
 import re
 import execjs
 import pymongo
+from execjs._exceptions import ProcessExitedWithNonZeroStatus
 from pymongo.errors import ServerSelectionTimeoutError
 
 from util import Util
@@ -37,6 +38,13 @@ class MoocSpider(object):
             quiz_list: 测验的习题集（含答案）
         """
 
+        def retain_http_url(matched):
+            tmp_str = matched.group('string')
+            # print(tmp_str)
+            tmp_str = re.search('http:\/\/.*?\.(jpg|png|jpeg|bmp|tif|tiff|gif)', tmp_str, re.DOTALL)
+            # print(tmp_str)
+            return tmp_str.group()
+
         request_data = "callCount=1\n" \
                        "scriptSessionId=${scriptSessionId}190\n" \
                        "httpSessionId=%s\n" % self.cookies['NTESSTUDYSI'] + \
@@ -52,16 +60,28 @@ class MoocSpider(object):
         res = requests.post(url=url, headers=self.headers, cookies=self.cookies, verify=False, data=request_data)
         res.encoding = 'unicode_escape'
         # print("测验页：\n" + res.text)
+        text = res.text
+
+        # 检测是标题和选项字段是否是图片
+        is_img = re.findall('【图片】', text)
+        # 是图片，拆分标签，只保留http图片
+        # print(text)
+        if len(is_img) != 0:
+            text = re.sub('(?P<string><img.*http:.*?\/>)', retain_http_url, text)
+            text = re.sub('(?P<string><p>.*http:.*\/p>)', retain_http_url, text)
 
         # 去除html标签和dwr回调函数
-        text = Util.remove_label_and_callback(res.text)
+        text = Util.remove_html_label(text)
+        text = Util.remove_callback(text)
         # 替换html转义字符为原字符
         text = Util.convert_html_escape_character(text)
+        # print(text)
         js = execjs.compile(text)
-
         query_number = Util.get_attr_value("objectiveQList", res.text)
 
         quiz_list = js.eval(query_number)
+
+        # pprint(quiz_list)
 
         def convert_at2quote(text):
             return re.sub('`qwerf`', '"', text)
@@ -145,7 +165,8 @@ class MoocSpider(object):
         :param chapter_number: 测验对应的章节号
         """
         query_number = Util.get_attr_value('objectiveQList', text)
-        text = Util.remove_label_and_callback(text)
+        text = Util.remove_html_label(text)
+        text = Util.remove_callback(text)
         # text = Util.convert_inner_label(text)
         js = execjs.compile(text)
         quiz_list = js.eval(query_number)
@@ -188,14 +209,17 @@ class MoocSpider(object):
         requests.packages.urllib3.disable_warnings()
         url = self.base_url + "/dwr/call/plaincall/CourseBean.getLastLearnedMocTermDto.dwr"
         res = requests.post(url=url, headers=self.headers, cookies=self.cookies, verify=False, data=request_data)
-        res.encoding = 'unicode_escape'
-        text = Util.remove_label_and_callback(res.text)
+        # res.encoding = 'unicode_escape'
+        text = Util.remove_html_label(res.text)
+        text = Util.remove_callback(text)
+
         # 去掉jsonContent字段
-        text = re.sub('s[0-9]+\.jsonContent=(("(\[|{).*?(\]|})";)|(null;))', '', text)
+        # text = re.sub('s[0-9]+\.jsonContent=(("(\[|{).*?(\]|})";)|(null;))', '', text)
         # 去掉isTestChecked和name连起来的字段
-        text = re.sub('s[0-9]+\.liveInfoDto.*name=.*";', '', text)
+        # text = re.sub('s[0-9]+\.liveInfoDto.*name=.*";', '', text)
 
         # 去除testRandomSetting和testTime |(s[0-9]+\.testTime=[0-9]+;)
+        # print(text)
 
         def double_quote(matched):
             tmp_str = matched.group('string')
@@ -206,7 +230,7 @@ class MoocSpider(object):
             return prefix + tmp_str + suffix
 
         # 处理双引号"
-        text = re.sub('(?P<string>testRandomSetting=".*?";)', double_quote, text)
+        # text = re.sub('(?P<string>testRandomSetting=".*?";)', double_quote, text)
         js = execjs.compile(text)
 
         chapter_number_list = []
@@ -273,6 +297,9 @@ class MoocSpider(object):
         except ServerSelectionTimeoutError as e:
             print(Fore.LIGHTRED_EX + "发生错误" + e + "\n请开启mongo服务")
             return
+        except ProcessExitedWithNonZeroStatus as e:
+            print(Fore.LIGHTRED_EX + "发生错误" + str(e))
+            return
         finally:
             print(Fore.LIGHTRED_EX + "本次共新增" + str(quiz_count) + "道题目")
             quiz_count = 0
@@ -302,6 +329,62 @@ class MoocSpider(object):
                     if flag.modified_count is not 0:
                         print(Fore.YELLOW + "新增选项：" + option['content'])
 
+    def get_tid_list_and_course_name(self, course_id):
+        """根据course_id获取tid的列表
+
+        :param course_id: 课程号，例如“FAFU-1449784175?”
+        :return: tid_list
+        """
+        url = self.base_url + '/course/' + str(course_id)
+        requests.packages.urllib3.disable_warnings()
+        res = requests.get(url=url, headers=self.headers, cookies=self.cookies, verify=False)
+        res.encoding = 'utf-8'
+
+        # 获取课程部分的List字符串
+        text = re.findall('window.termInfoList = \[.*?\];', res.text, flags=re.DOTALL)[0]
+        # 在字符串中筛选出course_id（直接拿id的话，会把类别等的id一起拿进来）
+        result = re.findall('id : "[0-9]+"', text)
+
+        text = re.findall('window.courseDto = \{.*?\};', res.text, flags=re.DOTALL)[0]
+        course_name_str = re.findall('name:".*?",', text)[0]
+        course_name = course_name_str[len('name:"'): -len('",')]
+
+        tid_list = []
+        for tid in result:
+            tid_list.append(tid[len('id : "'):-len('"')])
+        print('开课id：' + str(tid_list))
+        print('课程名称：' + course_name)
+        return tid_list, course_name
+
+    def start_learn_course(self, tid):
+        request_data = "callCount=1\n" + \
+                       "scriptSessionId=${scriptSessionId}190\n" + \
+                       "httpSessionId=%s\n" % self.cookies['NTESSTUDYSI'] + \
+                       "c0-scriptName=CourseBean\n" + \
+                       "c0-methodName=startTermLearn\n" + \
+                       "c0-id=0\n" + \
+                       "c0-param0=string:%s" % str(tid) + "\n" + \
+                       "c0-param1=null:null\n" + \
+                       "batchId=1"
+        url = self.base_url + "/dwr/call/plaincall/CourseBean.startTermLearn.dwr"
+        requests.packages.urllib3.disable_warnings()
+        res = requests.post(url=url, headers=self.headers, cookies=self.cookies, verify=False,
+                            data=request_data)
+        res.encoding = 'unicode_escape'
+        return True
+
+    def get_all_quiz_by_course_id(self, course_id, cnt=10):
+        """根据课程号获取所有测验并保存数据库
+        """
+
+        # 先获取tid_list和course_name，tid_list循环获取题目，course_name作为数据库的collection名称
+        tid_list, course_name = self.get_tid_list_and_course_name(course_id)
+        for tid in tid_list:
+            # 先确保一下参与学习课程
+            self.start_learn_course(tid)
+            # 调用根据tid获取quiz的函数
+            self.get_new_quiz_list(tid=tid, cnt=cnt, collection_name=course_name)
+
 
 if __name__ == '__main__':
     spider = MoocSpider()
@@ -323,12 +406,19 @@ if __name__ == '__main__':
     # spider.get_new_quiz_list(tid='1001804009', collection_name="history", cnt=5)  # 第1次开课
 
     # 青岛大学软件构造(软件设计与体系结构)
-    spider.get_new_quiz_list(tid='1206820205', collection_name="software", cnt=3)  # 第1次开课
-    spider.get_new_quiz_list(tid='1450689459', collection_name="software", cnt=3)  # 第2次开课
+    # spider.get_all_quiz_by_course_id('QDU-1206501801', 10)
+
+    # spider.get_all_quiz_by_course_id('XJTU-1002106007', 15)
+
+    # 武大近代史
+    # spider.get_all_quiz_by_course_id('WHU-1001717004', 15)
+
+    # 华东师范大学面向对象分析与设计
+    spider.get_all_quiz_by_course_id('ECNU-1003434002', 15)
+
+    # 金陵科技学院软件需求工程
+    spider.get_all_quiz_by_course_id('JIT-1001757003', 15)
 
     # 福建农林大学Java
     # spider.get_new_quiz_list(tid='1003691003', collection_name="java", cnt=5)  # 第1次开课
     # spider.get_new_quiz_list(tid='1206936204', collection_name="java", cnt=18)  # 第2次开课
-
-    # spider.test_judge()
-    # spider.get_new_quiz_list(tid='1450259448', collection_name="ttt", cnt=10)
